@@ -45,6 +45,7 @@ let rec stepAexp : aexp -> aexp=function
   | Minus (a1, a2) when is_valueA a1 && when is_valueA a2 -> Int(a1-a2)
   | Minus (a1, a2) when is_valueA a1-> Minus (a1, stepAexp a2)
   | Minus (a1, a2) -> Minus (stepAexp a1, a2)
+  | Input -> let ()= print_string ">" in let i= read_int (); i
 
 let rec evalAexp (e: aexp): value=
   if is_valueA e then e else
@@ -89,7 +90,7 @@ let rec stepBexp: bexp->bexp=function
 
 
 let rec evalBexp (e: bexp): value=
-  if is_valueB e then boolB e else
+  if is_valueB e then e else
     e|> stepBexp |> evalBexp
     
 (**************************** Evaluate a command*****************************)
@@ -104,18 +105,26 @@ let rec stepCom:configuration->configuration=function
   | s, Skip, Skip, k-> (s, Skip, Skip, k)
   | s, Skip, x, k-> (s, x, Skip, k)  
 
-  | s, Assign (var, aexp), x, k->(Store.add var (evalAexp aexp) s, Skip, x, k)
+  | s, Assign (var, aexp), x, k->(Store.update var (evalAexp aexp) s, Skip, x, k)
 
-  | s, Print(aexp), x, k-> pprintAexp(aexp); (s, Skip, x, k)
+  | s, Print(aexp), x, k-> pprintAexp(evalAexp aexp); (s, x, Skip, k)
 
-  | s, If(b, c1, c2), x, k when is_valueB b && boolB b->(s, c1, x, k)
-  | s, If(b, c1, c2), x, k when is_valueB b && not(boolB b)-> (s, c2, x, k)
-  | s, If(b, c1, c2), x, k-> (s, If(evalBexp b, c1, c2), x, k)
+  | s, If(b, c1, c2), x, k when evalBexp(b)->(s, c1, x, k)
+  | s, If(b, c1, c2), x, k when not(evalBexp(b))-> (s, c2, x, k)
 
 
-  | s, Seq (c1, c2), Skip, k-> 
-  | s, Seq (c1, c2), Continue, k -> failwith "to do"
 
+  | s, Seq (c1, c2), Skip, k-> (s, c1, c2, k)
+  | s, Seq (c1, c2), x, k-> (s, c1, Seq(c2, x), k)
+
+  | s, While(b, c1), c2, k-> (s, If(b, Seq(c1, While(b, c1)), Skip), Continue, k.append((b, c2)))
+  |
+  | s, Break, x, k when k.is_empty()-> (*raise error when k is empty and there is a break. *)
+  | s, Break, x, k->
+     match k.head() with 
+     | (b, c)->(s, c, Skip, k.tl)
+
+  
 let rec evalc (conf:configuration) : store =
   match conf with 
   | s, c1, c2, k-> if is_complete c1 && is_complete c2 then s 
