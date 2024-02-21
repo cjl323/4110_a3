@@ -16,17 +16,11 @@ and value=
 | VBool of bool
 
 (*The configuration is a map from a store to an expression*)
-module Config=Map.Make(String)
-let empty_config=Config.empty
-type configuration =  exp Config.t
-and exp=
-| Arith of aexp
-| BoolE of bexp
-| ComE of com
+type configuration =  ((string*value) list)*com
 
 
 (* Create an initial configuration from a command. *)
-let make_configuration (c:com) : configuration = failwith "Not yet implemented"
+let make_configuration (c:com) : configuration = (Store.bindings(empty_store), c)
 
 (* Evaluate a command. *)
 let rec evalc (conf:configuration) : store =
