@@ -7,15 +7,26 @@
 open Ast
 open Errors
 
-(* A type for stores. *)
-type store = (* FILL ME IN *) unit
+(*Our store is a map from a string to a value*)
+module Store=Map.Make(String)
+let empty_store=Store.empty
+type store =  value Store.t
+and value=
+| VInt of int
+| VBool of bool
 
-(* A type for configurations. *)
-type configuration = (* FILL ME IN *) unit
+(*The configuration is a map from a store to an expression*)
+module Config=Map.Make(String)
+let empty_config=Config.empty
+type configuration =  exp Config.t
+and exp=
+| Arith of aexp
+| BoolE of bexp
+| ComE of com
+
 
 (* Create an initial configuration from a command. *)
-let make_configuration (c:com) : configuration =
-  failwith "Not yet implemented"
+let make_configuration (c:com) : configuration = failwith "Not yet implemented"
 
 (* Evaluate a command. *)
 let rec evalc (conf:configuration) : store =
